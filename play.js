@@ -4,7 +4,7 @@ var sally;
 //DEFAULT VARS
 var WORLD_WIDTH = 700 * 35;
 var WORLD_HEIGHT = 1500;//500;
-var KIRKO_SPEED = 225;//525;
+var KIRKO_SPEED = 525;//525; 225 is very good speed.
 var GLOBAL_GRAVITY = 1200;
 var SALLY_START_X = 7000;
 var SALLY_START_Y = 1250;
@@ -60,8 +60,6 @@ var play_state = {
         /******COLLISION GROUPS*******/
         var kirkoCollisionGroup = game.physics.p2.createCollisionGroup();
         var floorCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfPyramidCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfPyramidReversedCollisionGroup = game.physics.p2.createCollisionGroup();
         var stairCollisionGroup = game.physics.p2.createCollisionGroup();
         var halfPipeOneCollisionGroup = game.physics.p2.createCollisionGroup();
         var halfPipeTwoCollisionGroup = game.physics.p2.createCollisionGroup();
@@ -97,7 +95,7 @@ var play_state = {
          \______/ |__/  |__/|__/  |__/|__/      |________/ \______/
          **********************************************************/    
         /******RAMPS*******/
-        var ramp = game.add.sprite(11150, 1200, 'ramp');
+        var ramp = game.add.sprite(15150, 1200, 'ramp');
         game.physics.p2.enable(ramp);
         ramp.body.clearShapes();
         ramp.body.loadPolygon('physicsData', 'ramp');    
@@ -115,36 +113,10 @@ var play_state = {
         for (var x = 350; x < WORLD_WIDTH; x+= 700) {
             var floor = floors.create(x, 455 + 1000, 'floor');
             floor.body.setCollisionGroup(floorCollisionGroup);
-            floor.body.collides([kirkoCollisionGroup, floorCollisionGroup, halfPyramidCollisionGroup, halfPyramidReversedCollisionGroup, stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, halfPipeThreeCollisionGroup, rampCollisionGroup]);  
+            floor.body.collides([kirkoCollisionGroup, floorCollisionGroup, stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, halfPipeThreeCollisionGroup, rampCollisionGroup]);  
             floor.body.mass = 10000;      
         }    
 
-        /******PYRAMID*******/
-
-        /*
-         var half_pyramid = game.add.sprite(3525, (-250 + 1005), 'half_pyramid');
-         game.physics.p2.enable(half_pyramid);
-         half_pyramid.body.clearShapes();
-         half_pyramid.body.loadPolygon('physicsData', 'half_pyramid');     
-         half_pyramid.body.collideWorldBounds = false;
-         half_pyramid.body.setCollisionGroup(halfPyramidCollisionGroup);
-         half_pyramid.body.collides([floorCollisionGroup, kirkoCollisionGroup]);//, kirkoCollisionGroup]);
-         //half_pyramid.body.mass = 1000; 
-         half_pyramid.body.static = true;
-         */
-
-        /******PYRAMID REVERSED*******/
-        /*
-         var half_pyramid_reversed = game.add.sprite(4900, (-250 + 1005), 'half_pyramid_reversed');
-         game.physics.p2.enable(half_pyramid_reversed);
-         half_pyramid_reversed.body.clearShapes();
-         half_pyramid_reversed.body.loadPolygon('physicsData', 'half_pyramid_reversed');     
-         half_pyramid_reversed.body.collideWorldBounds = false;
-         half_pyramid_reversed.body.setCollisionGroup(halfPyramidReversedCollisionGroup);
-         half_pyramid_reversed.body.collides([floorCollisionGroup, kirkoCollisionGroup]);
-         //half_pyramid_reversed.body.mass = 1000;
-         half_pyramid_reversed.body.static = true;  
-         */
 
          /******STAIRS- BUILDING THE STAIRS*******/
          var bottomStair = game.add.sprite(3500, 1358, 'bottom_stair');
@@ -221,7 +193,7 @@ var play_state = {
         */
 
         /******HALF PIPES*******/
-         var half_pipe_one = game.add.sprite(11800, 1200, 'half_pipe');
+         var half_pipe_one = game.add.sprite(13800, 1200, 'half_pipe');
          game.physics.p2.enable(half_pipe_one, true);
          half_pipe_one.body.clearShapes();
          half_pipe_one.body.loadPolygon('physicsData', 'half_pipe'); 
@@ -230,7 +202,7 @@ var play_state = {
          half_pipe_one.body.setCollisionGroup(halfPipeOneCollisionGroup);
          half_pipe_one.body.collides([floorCollisionGroup, kirkoCollisionGroup]);   
 
-         var half_pipe_two = game.add.sprite(12500, 1200, 'half_pipe');
+         var half_pipe_two = game.add.sprite(14500, 1200, 'half_pipe');
          game.physics.p2.enable(half_pipe_two);
          half_pipe_two.body.clearShapes();
          half_pipe_two.body.loadPolygon('physicsData', 'half_pipe'); 
@@ -239,7 +211,7 @@ var play_state = {
          half_pipe_two.body.setCollisionGroup(halfPipeTwoCollisionGroup);
          half_pipe_two.body.collides([floorCollisionGroup, kirkoCollisionGroup]);
 
-         var half_pipe_three = game.add.sprite(13200, 1200, 'half_pipe');
+         var half_pipe_three = game.add.sprite(15200, 1200, 'half_pipe');
          game.physics.p2.enable(half_pipe_three);
          half_pipe_three.body.clearShapes();
          half_pipe_three.body.loadPolygon('physicsData', 'half_pipe'); 
@@ -251,8 +223,7 @@ var play_state = {
 
         /******Making sure that sally collides with the floor*******/
         sally.body.setCollisionGroup(kirkoCollisionGroup);
-        sally.body.collides([halfPyramidCollisionGroup, halfPyramidReversedCollisionGroup, 
-                             stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
+        sally.body.collides([stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
                              halfPipeThreeCollisionGroup, rampCollisionGroup]);
         sally.body.collides(floorCollisionGroup, this.hitFloor, this);
         sally.body.collides(bottomStairCollisionGroup, this.hitFloor, this);
