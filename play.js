@@ -6,7 +6,7 @@ var WORLD_WIDTH = 700 * 35;
 var WORLD_HEIGHT = 1500;//500;
 var KIRKO_SPEED = 525;//525; 225 is very good speed.
 var GLOBAL_GRAVITY = 1200;
-var SALLY_START_X = 7000;
+var SALLY_START_X = 5000;
 var SALLY_START_Y = 1250;
 
 
@@ -69,6 +69,7 @@ var play_state = {
         var bottomStairCollisionGroup = game.physics.p2.createCollisionGroup();
         var middleStairCollisionGroup = game.physics.p2.createCollisionGroup();
         var smallStairCollisionGroup = game.physics.p2.createCollisionGroup();
+        var halfMountainCollisionGroup = game.physics.p2.createCollisionGroup();
 
         //This makes sure that the world bounds are still being collided with by the other collision groups
         game.physics.p2.updateBoundsCollisionGroup();
@@ -94,6 +95,10 @@ var play_state = {
         |  $$$$$$/| $$  | $$| $$  | $$| $$      | $$$$$$$$|  $$$$$$/
          \______/ |__/  |__/|__/  |__/|__/      |________/ \______/
          **********************************************************/    
+
+         /** QUICK COMMENT: REMEMBER THAT FOR COLLISION GROUPS YOU NEED TO ADD THE GROUP
+         TO BOTH GROUPS SO FLOOR - KIRKO AND KIRKO-FLOOR
+         **/
         /******RAMPS*******/
         var ramp = game.add.sprite(15150, 1200, 'ramp');
         game.physics.p2.enable(ramp);
@@ -113,7 +118,7 @@ var play_state = {
         for (var x = 350; x < WORLD_WIDTH; x+= 700) {
             var floor = floors.create(x, 455 + 1000, 'floor');
             floor.body.setCollisionGroup(floorCollisionGroup);
-            floor.body.collides([kirkoCollisionGroup, floorCollisionGroup, stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, halfPipeThreeCollisionGroup, rampCollisionGroup]);  
+            floor.body.collides([kirkoCollisionGroup, floorCollisionGroup, stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup]);  
             floor.body.mass = 10000;      
         }    
 
@@ -127,7 +132,6 @@ var play_state = {
          bottomStair.body.setCollisionGroup(bottomStairCollisionGroup);
          bottomStair.body.collides([kirkoCollisionGroup, floorCollisionGroup]);
 
-         //TODO: Need to add physics
          var middleStair = game.add.sprite(3500, 1262, 'middle_stair');
          game.physics.p2.enable(middleStair);
          middleStair.body.clearShapes();
@@ -137,7 +141,6 @@ var play_state = {
          middleStair.body.collides([kirkoCollisionGroup, floorCollisionGroup]);     
          //middleStair.body.debug = true;
 
-         //TODO: Need to add physics
          var smallStair = game.add.sprite(3500, 1165, 'small_stair');
          game.physics.p2.enable(smallStair);
          smallStair.body.clearShapes();
@@ -149,48 +152,16 @@ var play_state = {
 
 
          /******MOUNTAIN- BUILDING THE MOUNTAIN*******/
-         var half_mountain = game.add.sprite(7500, (-997.5 + 1005), 'half_mountain');
+         var halfMountain = game.add.sprite(7500, 807, 'half_mountain');
+         game.physics.p2.enable(halfMountain, true);
+         halfMountain.body.clearShapes();
+         halfMountain.body.loadPolygon('physicsData', 'half_mountain');
+         halfMountain.body.static = true;
+         halfMountain.body.mass = 10;
+         halfMountain.body.setCollisionGroup(halfMountainCollisionGroup);
+         halfMountain.body.collides([kirkoCollisionGroup]);
+
          var half_mountain_inverted = game.add.sprite(10000, (-997.5 + 1005), 'half_mountain_inverted');
-
-
-
-         /*
-         var bottomLeft = game.add.sprite(7100, 1200, 'stair');
-         game.physics.p2.enable(bottomLeft);
-         bottomLeft.body.mass = 500;
-         bottomLeft.body.setCollisionGroup(stairCollisionGroup);
-         bottomLeft.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);
-
-         var bottomMiddle = game.add.sprite(7800.12, 1200, 'stair');
-         game.physics.p2.enable(bottomMiddle);
-         bottomMiddle.body.mass = 500;
-         bottomMiddle.body.setCollisionGroup(stairCollisionGroup);
-         bottomMiddle.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);     
-
-         var bottomRight = game.add.sprite(8500, 1200, 'stair');
-         game.physics.p2.enable(bottomRight);
-         bottomRight.body.mass = 500;
-         bottomRight.body.setCollisionGroup(stairCollisionGroup);
-         bottomRight.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);  
-
-         var middleLeft = game.add.sprite(7450, 1000, 'stair');
-         game.physics.p2.enable(middleLeft);
-         middleLeft.body.mass = 50;
-         middleLeft.body.setCollisionGroup(stairCollisionGroup);
-         middleLeft.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);
-
-         var middleRight = game.add.sprite(8150, 1000, 'stair');
-         game.physics.p2.enable(middleRight);
-         middleRight.body.mass = 50;
-         middleRight.body.setCollisionGroup(stairCollisionGroup);
-         middleRight.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);  
-
-         var top = game.add.sprite(7800, 800, 'stair');
-         game.physics.p2.enable(top);
-         top.body.mass = 10;
-         top.body.setCollisionGroup(stairCollisionGroup);
-         top.body.collides([floorCollisionGroup, kirkoCollisionGroup, stairCollisionGroup]);               
-        */
 
         /******HALF PIPES*******/
          var half_pipe_one = game.add.sprite(13800, 1200, 'half_pipe');
@@ -224,7 +195,7 @@ var play_state = {
         /******Making sure that sally collides with the floor*******/
         sally.body.setCollisionGroup(kirkoCollisionGroup);
         sally.body.collides([stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
-                             halfPipeThreeCollisionGroup, rampCollisionGroup]);
+                             halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup]);
         sally.body.collides(floorCollisionGroup, this.hitFloor, this);
         sally.body.collides(bottomStairCollisionGroup, this.hitFloor, this);
         sally.body.collides(middleStairCollisionGroup, this.hitFloor, this);
@@ -300,6 +271,7 @@ var play_state = {
         this.jumpkey.onDown.add(this.jumpCheck, this);
     },
     jumpCheck: function() {
+        sally.body.moveUp(500);
         if (onTheGround) {
             sally.body.moveUp(500);
             onTheGround = false;
