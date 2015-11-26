@@ -14,7 +14,7 @@ var load_state = {
         game.load.image('ramp', 'assets/geometry/kirko_ramp.png');
 
         game.load.image('half_mountain', 'assets/geometry/kirko_half_mountain.png');
-        game.load.image('half_mountain_inverted', 'assets/geometry/kirko_half_mountain_alternate.png');
+        game.load.image('half_mountain_inverted', 'assets/geometry/kirko_half_mountain_inverted.png');
 
         /*** TITLE SCREEN ***/
         game.load.image('kirko_title', 'assets/kirko_title_screen.png');
