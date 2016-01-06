@@ -3,6 +3,9 @@ var load_state = {
         /*** MAIN CHARACTER ***/
         game.load.image('sally', 'assets/sallyv4.png');
 
+        /*** ENEMY ***/
+        game.load.image('enemy', 'assets/kirko_enemy.png');
+
         /*** GEOMETRY ***/
         game.load.image('floor', 'assets/geometry/kirko_ground.png');
 
@@ -23,6 +26,8 @@ var load_state = {
 
         //Hills//
         game.load.image('hills', 'assets/kirko_hills.png');
+        game.load.image('background', 'assets/colored_talltrees.png');
+
         /*** VOICE AND MUSIC TRACKS ***/
         game.load.audio('kirko_guitar_track', ['assets/Music/kirko_guitar_test.mp3']);
         game.load.audio('kirko_voice_test', ['assets/Music/kirko_voice_test.mp3']);

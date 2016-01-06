@@ -1,21 +1,44 @@
 //GLOBAL VARS
 var sally;
+var enemies;
 
 //DEFAULT VARS
 var WORLD_WIDTH = 700 * 35;
 var WORLD_HEIGHT = 1500;//500;
-var KIRKO_SPEED = 50;//525; 225 is very good speed.
+var KIRKO_SPEED = 300;//525; 225 is very good speed.
 var GLOBAL_GRAVITY = 1200;
-var SALLY_START_X = 5800//250;
+var SALLY_START_X = 250//5800//250;
 var SALLY_START_Y = 1250;
 
 
 var kirko_guitar_track;
 var kirko_voice_test;
+var sample;
 //was 170 changed it to 300
 
 var jump = 0;
 var onTheGround = false;
+
+
+//COLLISION GROUPS
+var kirkoCollisionGroup;
+var floorCollisionGroup;
+var stairCollisionGr
+var halfPipeOneCollisionGroup;
+var halfPipeTwoCollisionGroup;
+var halfPipeThreeCollisionGroup;
+var rampCollisionGroup;
+var rampReversedCollisionGroup;
+var bottomStairCollisionGroup;
+var middleStairCollisionGroup;
+var smallStairCollisionGroup;
+var halfMountainCollisionGroup;
+var halfMountainInvertedCollisionGroup;
+
+var spawnFirstEnemy = true;
+var enemyMoveLoop;
+
+
 var play_state = {
 
     // No more 'preload' function, since it is already done in the 'load' state
@@ -39,6 +62,10 @@ var play_state = {
 
         //HIlls
         var hills = game.add.sprite(0, 1290, 'hills');
+        sample = game.add.tileSprite(0, 650, WORLD_WIDTH, 1025, 'background');
+        // var sample = game.add.sprite(1025, 650, 'background');
+        // var sample = game.add.sprite(2050, 650, 'background');
+        // var sample = game.add.sprite(3075, 650, 'background');
 
         /******KIRKO(Codename Sally)*******/
         //sally = game.add.sprite(180, 250, 'sally'); 150 is good too
@@ -58,23 +85,29 @@ var play_state = {
         
 
         /******COLLISION GROUPS*******/
-        var kirkoCollisionGroup = game.physics.p2.createCollisionGroup();
-        var floorCollisionGroup = game.physics.p2.createCollisionGroup();
-        var stairCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfPipeOneCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfPipeTwoCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfPipeThreeCollisionGroup = game.physics.p2.createCollisionGroup();
-        var rampCollisionGroup = game.physics.p2.createCollisionGroup();
-        var rampReversedCollisionGroup = game.physics.p2.createCollisionGroup();
-        var bottomStairCollisionGroup = game.physics.p2.createCollisionGroup();
-        var middleStairCollisionGroup = game.physics.p2.createCollisionGroup();
-        var smallStairCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfMountainCollisionGroup = game.physics.p2.createCollisionGroup();
-        var halfMountainInvertedCollisionGroup = game.physics.p2.createCollisionGroup();
+        kirkoCollisionGroup = game.physics.p2.createCollisionGroup();
+        floorCollisionGroup = game.physics.p2.createCollisionGroup();
+        stairCollisionGroup = game.physics.p2.createCollisionGroup();
+        halfPipeOneCollisionGroup = game.physics.p2.createCollisionGroup();
+        halfPipeTwoCollisionGroup = game.physics.p2.createCollisionGroup();
+        halfPipeThreeCollisionGroup = game.physics.p2.createCollisionGroup();
+        rampCollisionGroup = game.physics.p2.createCollisionGroup();
+        rampReversedCollisionGroup = game.physics.p2.createCollisionGroup();
+        bottomStairCollisionGroup = game.physics.p2.createCollisionGroup();
+        middleStairCollisionGroup = game.physics.p2.createCollisionGroup();
+        smallStairCollisionGroup = game.physics.p2.createCollisionGroup();
+        halfMountainCollisionGroup = game.physics.p2.createCollisionGroup();
+        halfMountainInvertedCollisionGroup = game.physics.p2.createCollisionGroup();
+
+        var enemyCollisionGroup = game.physics.p2.createCollisionGroup();
 
         //This makes sure that the world bounds are still being collided with by the other collision groups
         game.physics.p2.updateBoundsCollisionGroup();
 
+
+        enemies = game.add.group();
+        enemies.enableBody = true;
+        enemies.physicsBodyType = Phaser.Physics.P2JS;
 
         /**********************************************************
           /$$$$$$  /$$   /$$  /$$$$$$  /$$$$$$$  /$$$$$$$$  /$$$$$$ 
@@ -113,8 +146,9 @@ var play_state = {
                                  halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
                                  halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup,
                                  halfMountainInvertedCollisionGroup]);  
-            floor.body.mass = 10000;      
-        }    
+            // floor.body.mass = 10000;
+            floor.body.static = true;
+        }
 
 
          /******STAIRS- BUILDING THE STAIRS*******/
@@ -230,12 +264,21 @@ var play_state = {
             var style = { font: "30px Arial", fill: "#ff0044", align: "center" };
             var t = game.add.text(i, 1000, text, style)        
         }
+
+
+        //TIMER
+        enemyMoveLoop = game.time.events.loop(1500, function() {
+            console.log("Move Enemy even fired")
+            this.moveEnemies(450);
+        }, this);
+
     }, //end of create function
 
     //UPDATE FUNCTION - GAME LOOP
     update: function() {
-        console.log(sally.body.angularForce);
-        console.log(sally.body.angularVelocity);
+        sample.x= game.camera.x*0.1
+        // console.log(sally.body.angularForce);
+        // console.log(sally.body.angularVelocity);
         if (cursors.left.isDown)
         {
             //sally.body.velocity.x = -200;
@@ -252,8 +295,15 @@ var play_state = {
         }
 
 
+        if (sally.body.x > 5400 && sally.body.x < 5420) {
+           if (spawnFirstEnemy) {
+                this.spawnEnemy(5800, 100);
+                spawnFirstEnemy = false;
+           }
+        }
         if (sally.body.x > 500 && sally.body.x < 510) {
            // kirko_guitar_track.pause();
+
         }
         /*
         if (sally.body.x > 200 && sally.body.x < 500 ) {
@@ -290,6 +340,33 @@ var play_state = {
     },
     hitFloor: function() {
         onTheGround = true;
-        console.log("evieviewfe");
+    },
+    enemyCollidesFloor: function(enemy) {
+        game.time.events.add(1000, function() {
+            console.log("Setting the floor var to true");
+            enemy.isOnFloor = true;
+        }, this);
+    },
+    spawnEnemy: function(x, y) {
+        var enemy = enemies.create(x, y, 'enemy');
+        enemy.body.setCollisionGroup(floorCollisionGroup);
+        enemy.body.collides([kirkoCollisionGroup, stairCollisionGroup,
+        halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
+        halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup,
+        halfMountainInvertedCollisionGroup]);  
+        enemy.body.collides(floorCollisionGroup, function() {
+            this.enemyCollidesFloor(enemy);
+        }, this)
+        enemy.body.mass = 10;
+        enemy.isOnFloor = false;
+    },
+    moveEnemies: function(rot) {
+        enemies.forEachExists(function(enemy) {
+            if (enemy.isOnFloor) {
+                enemy.body.rotateLeft(rot);
+            }
+
+        });
     }
 };
+window.moveEnemies = play_state.moveEnemies;
