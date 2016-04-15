@@ -1,14 +1,18 @@
+var invisibleWall;
 //GLOBAL VARS
 var sally;
 var enemies;
+var treeLedges;
+var worldScale = 1;
+
 
 //DEFAULT VARS
-var WORLD_WIDTH = 700 * 35;
+var WORLD_WIDTH = 700 * 50;//700 * 35;
 var WORLD_HEIGHT = 1500;//500;
-var KIRKO_SPEED = 300;//525; 225 is very good speed.
+var KIRKO_SPEED = 225;//250;//525; 225 is very good speed.
 var GLOBAL_GRAVITY = 1200;
-var SALLY_START_X = 250//5800//250;
-var SALLY_START_Y = 1250;
+var SALLY_START_X = 340;//250;//5000;//19933;//18000;//11000;//5800//250 is like the perfect beginning point;
+var SALLY_START_Y = 1300;//189;//1250;
 
 
 var kirko_guitar_track;
@@ -34,9 +38,20 @@ var middleStairCollisionGroup;
 var smallStairCollisionGroup;
 var halfMountainCollisionGroup;
 var halfMountainInvertedCollisionGroup;
+var treeLedgeCollisionGroup;
+var invisibleWallCollisionGroup;
 
 var spawnFirstEnemy = true;
 var enemyMoveLoop;
+
+var moveEvents = {};
+
+var stopSally = true;
+
+var cameraStart = false;
+
+var title;
+var pressStartTitle;
 
 
 var play_state = {
@@ -45,7 +60,7 @@ var play_state = {
 
     create: function() { 
         game.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-        game.stage.backgroundColor = '#FFFFFF'
+        game.stage.backgroundColor = '#FFFFFF';
 
         //Enabling the physics for the rest of the game
         game.physics.startSystem(Phaser.Physics.P2JS);
@@ -55,17 +70,50 @@ var play_state = {
         game.physics.p2.gravity.y = GLOBAL_GRAVITY;
 
 
-        /******TITLE IMAGE*******/
-        var title = game.add.sprite(20, 950, 'kirko_title');
-        title.alpha = 1;
-        game.add.tween(title).to( { alpha: 0 }, 8000, Phaser.Easing.Linear.None, true, 0);
+        //ADVANCED TIMING
+        game.time.advancedTiming = true;
+        game.time.desiredFps = 60;
+        game.time.slowMotion = 1.0;
 
-        //HIlls
-        var hills = game.add.sprite(0, 1290, 'hills');
-        sample = game.add.tileSprite(0, 650, WORLD_WIDTH, 1025, 'background');
+         /*****CURSORS*******/
+        cursors = game.input.keyboard.createCursorKeys();
+
+
+
+
+
+        /**********************************************************
+.______        ___       ______  __  ___   _______ .______        ______    __    __  .__   __.  _______  
+|   _  \      /   \     /      ||  |/  /  /  _____||   _  \      /  __  \  |  |  |  | |  \ |  | |       \ 
+|  |_)  |    /  ^  \   |  ,----'|  '  /  |  |  __  |  |_)  |    |  |  |  | |  |  |  | |   \|  | |  .--.  |
+|   _  <    /  /_\  \  |  |     |    <   |  | |_ | |      /     |  |  |  | |  |  |  | |  . `  | |  |  |  |
+|  |_)  |  /  _____  \ |  `----.|  .  \  |  |__| | |  |\  \----.|  `--'  | |  `--'  | |  |\   | |  '--'  |
+|______/  /__/     \__\ \______||__|\__\  \______| | _| `._____| \______/   \______/  |__| \__| |_______/ 
+                                                                                                          
+         **********************************************************/ 
+
+
+        var backgroundV1 = game.add.sprite(0, 800, 'background_v1');
+
+
+
+
+
+
+
+
+        var treeTrunk = game.add.sprite(18500, -868, 'tree_trunk');
+
+        //TODO: SET THESE UP ADD PHYSICS MOVE IT TO SHAPES ETC
+        //Hills
+        var hills = game.add.sprite(10900, 1079, 'hills');
+        var hills2 = game.add.sprite(14400, 1079, 'hills');
+        // sample = game.add.tileSprite(0, 650, WORLD_WIDTH, 1025, 'background');
         // var sample = game.add.sprite(1025, 650, 'background');
         // var sample = game.add.sprite(2050, 650, 'background');
         // var sample = game.add.sprite(3075, 650, 'background');
+
+
 
         /******KIRKO(Codename Sally)*******/
         //sally = game.add.sprite(180, 250, 'sally'); 150 is good too
@@ -74,6 +122,7 @@ var play_state = {
         
         sally.body.setCircle(35);
         game.camera.follow(sally);
+        game.camera.setPosition(0, SALLY_START_Y);
         
         //sally.body.debug = true;
         //sally.body.angularDamping= .1;
@@ -82,7 +131,6 @@ var play_state = {
         //sally.body.collideWorldBounds = false;
 
         sally.body.mass = 1;
-        
 
         /******COLLISION GROUPS*******/
         kirkoCollisionGroup = game.physics.p2.createCollisionGroup();
@@ -98,6 +146,8 @@ var play_state = {
         smallStairCollisionGroup = game.physics.p2.createCollisionGroup();
         halfMountainCollisionGroup = game.physics.p2.createCollisionGroup();
         halfMountainInvertedCollisionGroup = game.physics.p2.createCollisionGroup();
+        treeLedgeCollisionGroup = game.physics.p2.createCollisionGroup();
+        invisibleWallCollisionGroup = game.physics.p2.createCollisionGroup();
 
         var enemyCollisionGroup = game.physics.p2.createCollisionGroup();
 
@@ -105,34 +155,33 @@ var play_state = {
         game.physics.p2.updateBoundsCollisionGroup();
 
 
+        //TODO SHOULD CLEAN THIS UP
         enemies = game.add.group();
         enemies.enableBody = true;
         enemies.physicsBodyType = Phaser.Physics.P2JS;
 
+
+
+
+
+
+
+
+
+
         /**********************************************************
-          /$$$$$$  /$$   /$$  /$$$$$$  /$$$$$$$  /$$$$$$$$  /$$$$$$ 
-         /$$__  $$| $$  | $$ /$$__  $$| $$__  $$| $$_____/ /$$__  $$
-        | $$  \__/| $$  | $$| $$  \ $$| $$  \ $$| $$      | $$  \__/
-        |  $$$$$$ | $$$$$$$$| $$$$$$$$| $$$$$$$/| $$$$$   |  $$$$$$ 
-         \____  $$| $$__  $$| $$__  $$| $$____/ | $$__/    \____  $$
-         /$$  \ $$| $$  | $$| $$  | $$| $$      | $$       /$$  \ $$
-        |  $$$$$$/| $$  | $$| $$  | $$| $$      | $$$$$$$$|  $$$$$$/
-         \______/ |__/  |__/|__/  |__/|__/      |________/ \______/
+             _______. __    __       ___      .______    _______     _______.
+            /       ||  |  |  |     /   \     |   _  \  |   ____|   /       |
+           |   (----`|  |__|  |    /  ^  \    |  |_)  | |  |__     |   (----`
+            \   \    |   __   |   /  /_\  \   |   ___/  |   __|     \   \    
+        .----)   |   |  |  |  |  /  _____  \  |  |      |  |____.----)   |   
+        |_______/    |__|  |__| /__/     \__\ | _|      |_______|_______/    
          **********************************************************/    
 
          /** QUICK COMMENT: REMEMBER THAT FOR COLLISION GROUPS YOU NEED TO ADD THE GROUP
          TO BOTH GROUPS SO FLOOR - KIRKO AND KIRKO-FLOOR
          **/
-        /******RAMPS*******/
-        var ramp = game.add.sprite(15150, 1200, 'ramp');
-        game.physics.p2.enable(ramp);
-        ramp.body.clearShapes();
-        ramp.body.loadPolygon('physicsData', 'ramp');    
-        ramp.body.setCollisionGroup(rampCollisionGroup);
-        ramp.body.mass = 10;
-        ramp.body.collides([floorCollisionGroup, kirkoCollisionGroup]);
 
-                                                                    
         /******THE FLOORS GROUP*******/
         var floors = game.add.group();
         floors.enableBody = true;
@@ -145,14 +194,14 @@ var play_state = {
             floor.body.collides([kirkoCollisionGroup, floorCollisionGroup, stairCollisionGroup,
                                  halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
                                  halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup,
-                                 halfMountainInvertedCollisionGroup]);  
+                                 halfMountainInvertedCollisionGroup, treeLedgeCollisionGroup]);  
             // floor.body.mass = 10000;
             floor.body.static = true;
         }
 
 
          /******STAIRS- BUILDING THE STAIRS*******/
-         var bottomStair = game.add.sprite(3500, 1358, 'bottom_stair');
+         var bottomStair = game.add.sprite(8500, 1358, 'bottom_stair');
          game.physics.p2.enable(bottomStair);
          bottomStair.body.clearShapes();
          bottomStair.body.loadPolygon('physicsData', 'large_stair');
@@ -160,7 +209,7 @@ var play_state = {
          bottomStair.body.setCollisionGroup(bottomStairCollisionGroup);
          bottomStair.body.collides([kirkoCollisionGroup, floorCollisionGroup]);
 
-         var middleStair = game.add.sprite(3500, 1262, 'middle_stair');
+         var middleStair = game.add.sprite(8500, 1262, 'middle_stair');
          game.physics.p2.enable(middleStair);
          middleStair.body.clearShapes();
          middleStair.body.loadPolygon('physicsData', 'medium_stair');
@@ -169,7 +218,7 @@ var play_state = {
          middleStair.body.collides([kirkoCollisionGroup, floorCollisionGroup]);     
          //middleStair.body.debug = true;
 
-         var smallStair = game.add.sprite(3500, 1165, 'small_stair');
+         var smallStair = game.add.sprite(8500, 1165, 'small_stair');
          game.physics.p2.enable(smallStair);
          smallStair.body.clearShapes();
          smallStair.body.loadPolygon('physicsData', 'small_stair');
@@ -180,58 +229,188 @@ var play_state = {
 
 
          /******MOUNTAIN- BUILDING THE MOUNTAIN*******/
-         var halfMountain = game.add.sprite(7500, 807, 'half_mountain');
-         game.physics.p2.enable(halfMountain);
-         halfMountain.body.clearShapes();
-         halfMountain.body.loadPolygon('physicsData', 'half_mountain');
-         halfMountain.body.static = true;
-         halfMountain.body.mass = 10;
-         halfMountain.body.setCollisionGroup(halfMountainCollisionGroup);
-         halfMountain.body.collides([kirkoCollisionGroup]);
+         // var halfMountain = game.add.sprite(7500, 807, 'half_mountain');
+         // game.physics.p2.enable(halfMountain);
+         // halfMountain.body.clearShapes();
+         // halfMountain.body.loadPolygon('physicsData', 'half_mountain');
+         // halfMountain.body.static = true;
+         // halfMountain.body.mass = 10;
+         // halfMountain.body.setCollisionGroup(halfMountainCollisionGroup);
+         // halfMountain.body.collides([kirkoCollisionGroup]);
 
-         var halfMountainInverted = game.add.sprite(9640, 807, 'half_mountain_inverted');
-         game.physics.p2.enable(halfMountainInverted, true);
-         halfMountainInverted.body.clearShapes();
-         halfMountainInverted.body.loadPolygon('physicsData', 'half_mountain_inverted');
-         halfMountainInverted.body.static = true;
-         halfMountainInverted.body.mass = 10;
-         halfMountainInverted.body.setCollisionGroup(halfMountainInvertedCollisionGroup);
-         halfMountainInverted.body.collides([kirkoCollisionGroup]);
+         // var halfMountainInverted = game.add.sprite(9640, 807, 'half_mountain_inverted');
+         // game.physics.p2.enable(halfMountainInverted, true);
+         // halfMountainInverted.body.clearShapes();
+         // halfMountainInverted.body.loadPolygon('physicsData', 'half_mountain_inverted');
+         // halfMountainInverted.body.static = true;
+         // halfMountainInverted.body.mass = 10;
+         // halfMountainInverted.body.setCollisionGroup(halfMountainInvertedCollisionGroup);
+         // halfMountainInverted.body.collides([kirkoCollisionGroup]);
 
-        /******HALF PIPES*******/
-         var half_pipe_one = game.add.sprite(13800, 1200, 'half_pipe');
-         game.physics.p2.enable(half_pipe_one, true);
-         half_pipe_one.body.clearShapes();
-         half_pipe_one.body.loadPolygon('physicsData', 'half_pipe'); 
-         half_pipe_one.body.collideWorldBounds = false;
-         half_pipe_one.body.mass = 10;
-         half_pipe_one.body.setCollisionGroup(halfPipeOneCollisionGroup);
-         half_pipe_one.body.collides([floorCollisionGroup, kirkoCollisionGroup]);   
 
-         var half_pipe_two = game.add.sprite(14500, 1200, 'half_pipe');
-         game.physics.p2.enable(half_pipe_two);
-         half_pipe_two.body.clearShapes();
-         half_pipe_two.body.loadPolygon('physicsData', 'half_pipe'); 
-         half_pipe_two.body.collideWorldBounds = false;
-         half_pipe_two.body.mass = 10;
-         half_pipe_two.body.setCollisionGroup(halfPipeTwoCollisionGroup);
-         half_pipe_two.body.collides([floorCollisionGroup, kirkoCollisionGroup]);
+        /******THE TREE LEDGES*******/
+        
+        // treeLedges = game.add.group();
+        // treeLedges.enableBody = true;
+        // treeLedges.physicsBodyType = Phaser.Physics.P2JS;
 
-         var half_pipe_three = game.add.sprite(15200, 1200, 'half_pipe');
-         game.physics.p2.enable(half_pipe_three);
-         half_pipe_three.body.clearShapes();
-         half_pipe_three.body.loadPolygon('physicsData', 'half_pipe'); 
-         half_pipe_three.body.collideWorldBounds = false;
-         half_pipe_three.body.mass = 10;
-         half_pipe_three.body.setCollisionGroup(halfPipeThreeCollisionGroup);
-         half_pipe_three.body.collides([floorCollisionGroup, kirkoCollisionGroup]);            
+        // var treeLedge = treeLedges.create(18850, 1350, 'tree_ledge');
+        // treeLedge.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge.body.collides([kirkoCollisionGroup]);  
+        // treeLedge.body.static = true;
+
+        // var treeLedge2 = treeLedges.create(19200, 1250, 'tree_ledge');
+        // treeLedge2.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge2.body.collides([kirkoCollisionGroup]);  
+        // treeLedge2.body.static = true;
+
+        // var treeLedge3 = treeLedges.create(19550, 1150, 'tree_ledge');
+        // treeLedge3.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge3.body.collides([kirkoCollisionGroup]);  
+        // treeLedge3.body.static = true;
+
+        // var treeLedge4 = treeLedges.create(19850 + 50, 1050, 'tree_ledge_smaller');
+        // treeLedge4.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge4.body.collides([kirkoCollisionGroup]);  
+        // treeLedge4.body.static = true;
+
+        // var treeLedge5 = treeLedges.create(19600 - 50, 950, 'tree_ledge_smaller');
+        // treeLedge5.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge5.body.collides([kirkoCollisionGroup]);  
+        // treeLedge5.body.static = true;
+
+        // var treeLedge6 = treeLedges.create(19850 + 50, 850, 'tree_ledge_smaller');
+        // treeLedge6.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge6.body.collides([kirkoCollisionGroup]);  
+        // treeLedge6.body.static = true;
+
+        // var treeLedge7 = treeLedges.create(19600 - 50, 750, 'tree_ledge_smaller');
+        // treeLedge7.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge7.body.collides([kirkoCollisionGroup]);  
+        // treeLedge7.body.static = true;
+
+        // var treeLedge8 = treeLedges.create(19850 + 50, 650, 'tree_ledge_smaller');
+        // treeLedge8.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge8.body.collides([kirkoCollisionGroup]);  
+        // treeLedge8.body.static = true;
+
+        // var treeLedge9 = treeLedges.create(19600 - 50, 550, 'tree_ledge_smaller');
+        // treeLedge9.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge9.body.collides([kirkoCollisionGroup]);  
+        // treeLedge9.body.static = true;
+
+        // var treeLedge10 = treeLedges.create(19850 + 50, 450, 'tree_ledge_smaller');
+        // treeLedge10.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge10.body.collides([kirkoCollisionGroup]);  
+        // treeLedge10.body.static = true;
+
+        // var treeLedge11 = treeLedges.create(19600 - 50, 350, 'tree_ledge_smaller');
+        // treeLedge11.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge11.body.collides([kirkoCollisionGroup]);  
+        // treeLedge11.body.static = true;
+
+        // var treeLedge12 = treeLedges.create(19850 + 50, 250, 'tree_ledge_smaller');
+        // treeLedge12.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // treeLedge12.body.collides([kirkoCollisionGroup]);  
+        // treeLedge12.body.static = true;
+
+        // // var treeLedge13 = treeLedges.create(19850 + 300, 150, 'tree_ledge_smaller_alternate');
+        // // treeLedge13.body.setCollisionGroup(floorCollisionGroup);
+        // // treeLedge13.body.static = true;
+        // // treeLedge13.body.collides([kirkoCollisionGroup], function() {
+        // //     console.log("last ledge");
+        // //     treeLedge13.body.static = false;
+        // // });
+
+
+        // /******THE LAST TREE LEDGE PIECES*******/
+        // var brokenLedge1 = treeLedges.create(19850 + 268, 136, 'broken_ledge_1');
+        // brokenLedge1.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // brokenLedge1.body.static = true;
+        // brokenLedge1.body.collides([kirkoCollisionGroup], function() {
+        //     brokenLedge1.body.static = false;
+        //     brokenLedge2.body.static = false;
+        //     brokenLedge3.body.static = false;
+        //     brokenLedge4.body.static = false;
+        //     brokenLedge5.body.static = false;
+        //     brokenLedge5.body.moveRight(50);
+        //     brokenLedge4.body.moveDown(50);
+        //     brokenLedge1.body.moveLeft(50);
+        //     game.time.slowMotion = 4.0;
+        // });
+        // brokenLedge1.body.collides([floorCollisionGroup])
+
+        // var brokenLedge2 = treeLedges.create(19850 + 300, 150, 'broken_ledge_2');
+        // brokenLedge2.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // brokenLedge2.body.static = true;
+        // brokenLedge2.body.collides([kirkoCollisionGroup], function() {
+        //     brokenLedge1.body.static = false;
+        //     brokenLedge2.body.static = false;
+        //     brokenLedge3.body.static = false;
+        //     brokenLedge4.body.static = false;
+        //     brokenLedge5.body.static = false;
+        //     brokenLedge5.body.moveRight(50);
+        //     brokenLedge4.body.moveDown(50);
+        //     brokenLedge1.body.moveLeft(50);
+        //     game.time.slowMotion = 4.0;
+        // });
+        // brokenLedge2.body.collides([floorCollisionGroup])
+
+        // var brokenLedge3 = treeLedges.create(19850 + 270, 167, 'broken_ledge_3');
+        // brokenLedge3.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // brokenLedge3.body.static = true;
+        // brokenLedge3.body.collides([kirkoCollisionGroup], function() {
+        //     brokenLedge3.body.static = false;
+        // });
+        // brokenLedge3.body.mass = 6000000000;
+        // brokenLedge3.body.collides([floorCollisionGroup])
+
+        // var brokenLedge4 = treeLedges.create(19850 + 305, 162.5, 'broken_ledge_4');
+        // brokenLedge4.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // brokenLedge4.body.static = true;
+        // brokenLedge4.body.collides([kirkoCollisionGroup], function() {
+        //     brokenLedge4.body.static = false;
+        //     brokenLedge4.body.mass = 60000;
+        // });
+        // brokenLedge4.body.mass = 60000;
+        // brokenLedge4.body.collides([floorCollisionGroup])
+
+        // var brokenLedge5 = treeLedges.create(19850 + 357, 150, 'broken_ledge_5');
+        // brokenLedge5.body.setCollisionGroup(treeLedgeCollisionGroup);
+        // brokenLedge5.body.static = true;
+        // brokenLedge5.body.collides([kirkoCollisionGroup], function() {
+        //     brokenLedge1.body.static = false;
+        //     brokenLedge2.body.static = false;
+        //     brokenLedge3.body.static = false;
+        //     brokenLedge4.body.static = false;
+        //     brokenLedge5.body.static = false;
+        //     brokenLedge5.body.moveRight(50);
+        //     brokenLedge4.body.moveDown(50);
+        //     brokenLedge1.body.moveLeft(50);
+        //     game.time.slowMotion = 4.0;
+        // });
+        // brokenLedge5.body.collides([floorCollisionGroup])
+
+
+        // invisibleWall = game.add.sprite(708, SALLY_START_Y - 100 , 'invisible_wall');
+        // game.physics.p2.enable(invisibleWall);
+        // invisibleWall.alpha = 0;
+        // // invisibleWall.body.clearShapes();
+        // invisibleWall.body.setCollisionGroup(floorCollisionGroup);
+        // // invisibleWall.scale.width = 400;
+        // // invisibleWall.body.setRectangle(40, 400, 0, 0);
+        // invisibleWall.body.static = true;
+        // invisibleWall.body.mass = 1000;
+        // invisibleWall.body.collides([kirkoCollisionGroup]);
+
+
 
 
         /******Making sure that sally collides with the floor*******/
         sally.body.setCollisionGroup(kirkoCollisionGroup);
         sally.body.collides([stairCollisionGroup, halfPipeOneCollisionGroup, halfPipeTwoCollisionGroup, 
                              halfPipeThreeCollisionGroup, rampCollisionGroup, halfMountainCollisionGroup,
-                             halfMountainInvertedCollisionGroup]);
+                             halfMountainInvertedCollisionGroup, treeLedgeCollisionGroup, invisibleWallCollisionGroup]);
         sally.body.collides(floorCollisionGroup, this.hitFloor, this);
         sally.body.collides(bottomStairCollisionGroup, this.hitFloor, this);
         sally.body.collides(middleStairCollisionGroup, this.hitFloor, this);
@@ -240,11 +419,51 @@ var play_state = {
         //TODO ADD COLLISIONS WITH THE STUFF SO WE CAN JUMP
          
 
+        /**********************************************************
+         ___________    ____  _______ .__   __. .___________.    _______.
+        |   ____\   \  /   / |   ____||  \ |  | |           |   /       |
+        |  |__   \   \/   /  |  |__   |   \|  | `---|  |----`  |   (----`
+        |   __|   \      /   |   __|  |  . `  |     |  |        \   \    
+        |  |____   \    /    |  |____ |  |\   |     |  |    .----)   |   
+        |_______|   \__/     |_______||__| \__|     |__|    |_______/    
+         **********************************************************/ 
+
+
+         moveEvents = {
+            270 : {
+                "spawnEnemy" : {
+                    "hasBeenSpawned" : false,
+                    "spawnX": 5800,
+                    "spawnY": 100
+                }
+
+            }
+         }
 
 
 
-         /*****CURSORS*******/
-        cursors = game.input.keyboard.createCursorKeys();
+
+
+
+
+
+        /**********************************************************
+         __  .__   __.  __  .___________.
+        |  | |  \ |  | |  | |           |
+        |  | |   \|  | |  | `---|  |----`
+        |  | |  . `  | |  |     |  |     
+        |  | |  |\   | |  |     |  |     
+        |__| |__| \__| |__|     |__|     
+                                             
+         **********************************************************/    
+
+
+        /******TITLE IMAGE*******/
+        // title = game.add.sprite(120, 1000, 'kirko_title_alternate');
+        title = game.add.sprite(120, 945, 'kirko_title_alternate');
+        pressStartTitle = game.add.sprite(225, 1430, 'kirko_press_start');
+        title.alpha = 1;
+        pressStartTitle.alpha = 1;
 
 
         /******MUSIC********/
@@ -258,52 +477,115 @@ var play_state = {
 
 
         //DEBUG TEXT AT TOP
-        var lengthofgame = 10000;
-        for (var i = 0; i < lengthofgame; i+=100) {
-            var text = i;
-            var style = { font: "30px Arial", fill: "#ff0044", align: "center" };
-            var t = game.add.text(i, 1000, text, style)        
-        }
+        // var lengthofgame = WORLD_WIDTH;//10000;
+        // for (var i = 0; i < lengthofgame; i+=100) {
+        //     var text = i;
+        //     var style = { font: "30px Arial", fill: "#ff0044", align: "center" };
+        //     var t = game.add.text(i, 1000, text, style)        
+        // }
 
 
         //TIMER
         enemyMoveLoop = game.time.events.loop(1500, function() {
-            console.log("Move Enemy even fired")
+            // console.log("Move Enemy even fired")
             this.moveEnemies(450);
         }, this);
+
+        var space_key = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        space_key.onDown.add(this.startGame, this);
+
+        //JUMPING 
+        this.jumpkey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
+        this.jumpkey.onDown.add(this.jumpCheck, this);
 
     }, //end of create function
 
     //UPDATE FUNCTION - GAME LOOP
     update: function() {
-        sample.x= game.camera.x*0.1
+        //Parallax effect
+        // sample.x= game.camera.x*0.1
         // console.log(sally.body.angularForce);
         // console.log(sally.body.angularVelocity);
-        if (cursors.left.isDown)
-        {
-            //sally.body.velocity.x = -200;
-            sally.body.rotateLeft(KIRKO_SPEED);
-        }
-        else if (cursors.right.isDown)
-        {
-            //sally.body.velocity.x = 200;
-            sally.body.rotateRight(KIRKO_SPEED);
-        }
-        else
-        {
-            //sally.body.setZeroRotation();
+
+
+        // sally.body.setZeroVelocity();
+        /******CURSORS/CONTROLS********/
+        if (!stopSally) {
+            if (cursors.left.isDown) {
+                //sally.body.velocity.x = -200;
+                sally.body.rotateLeft(KIRKO_SPEED);
+
+                // sally.body.moveLeft(200);
+            } else if (cursors.right.isDown) {
+                //sally.body.velocity.x = 200;
+                sally.body.rotateRight(KIRKO_SPEED);
+                // sally.body.moveRight(200);
+            } else {
+                if (game.input.keyboard.isDown(Phaser.Keyboard.Z)) {
+                    sally.body.setZeroRotation();
+                }
+            }
         }
 
 
-        if (sally.body.x > 5400 && sally.body.x < 5420) {
-           if (spawnFirstEnemy) {
-                this.spawnEnemy(5800, 100);
-                spawnFirstEnemy = false;
-           }
+
+        // if (cursors.up.isDown)
+        // {
+        //     sally.body.moveUp(200);
+        // }
+        // else if (cursors.down.isDown)
+        // {
+        //     sally.body.moveDown(200);
+        // }
+
+
+
+
+        //SCALING FOR DEBUG PURPOSES ONLY
+        if (game.input.keyboard.isDown(Phaser.Keyboard.Q)) {
+            console.log("evie");
+            worldScale += 0.005;
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.A)) {
+            worldScale -= 0.005;
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.X)) {
+            console.log("C checking");
+            game.camera.unfollow();
+            var cameraTween = game.add.tween(game.camera).to( {x: (sally.x )  + 300, y: sally.y  }, 750, Phaser.Easing.Quadratic.InOut, true);
+        } if (game.input.keyboard.isDown(Phaser.Keyboard.V)) { 
+                        // game.camera.unfollow();
+            var cameraTween = game.add.tween(game.camera).to( {x: (sally.x ) - (game.camera.width / 2), y: sally.y  }, 750, Phaser.Easing.Quadratic.InOut, true);
+            cameraTween.onComplete.add(function() {
+                game.camera.follow(sally);
+                // cameraStart = true;
+            });
         }
+        game.world.scale.set(worldScale);
+
+
+        //Spawning the first enemy.
+        // if (sally.body.x > 5400 && sally.body.x < 5420) {
+        //    if (spawnFirstEnemy) {
+        //         this.spawnEnemy(5800, 100);
+        //         spawnFirstEnemy = false;
+        //    }
+        // }
+
+        //Grab the coord and divide by the offset and then look in the hash table for it
+        var cleanCoord = Math.floor(Math.floor(sally.body.x) / 20); // The 20 should be replaced with a constant.
+        if (moveEvents[cleanCoord]) {
+            var eventObj = moveEvents[cleanCoord];
+            if (eventObj.spawnEnemy) {
+                    var spawnEnemyObj = eventObj.spawnEnemy;
+                    if (!spawnEnemyObj.hasBeenSpawned) {
+                        this.spawnEnemy(spawnEnemyObj.spawnX, spawnEnemyObj.spawnY);
+                        spawnEnemyObj.hasBeenSpawned = true;
+                    }
+
+            }
+        }
+
         if (sally.body.x > 500 && sally.body.x < 510) {
            // kirko_guitar_track.pause();
-
         }
         /*
         if (sally.body.x > 200 && sally.body.x < 500 ) {
@@ -321,15 +603,23 @@ var play_state = {
         //{
             //sally.body.reverse(400);
         //} 
-        this.jumpkey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
-        this.jumpkey.onDown.add(this.jumpCheck, this);
+
+        // if (cameraStart) {
+        //     game.camera.focusOnXY(sally.x, sally.y);
+        // }
+
+
     },
     jumpCheck: function() {
-        sally.body.moveUp(500);
-        if (onTheGround) {
-            sally.body.moveUp(500);
-            onTheGround = false;
+        //Remove this to get rid of the double jump
+        if (!stopSally){
+            sally.body.moveUp(600);
         }
+
+        // if (onTheGround) {
+        //     sally.body.moveUp(500);
+        //     onTheGround = false;
+        // }
         // console.log(sally.body.y);
         // if (jump < 2) {//&& (sally.body.velocity.y < 1 && sally.body.velocity.y > -1)) {
         //     sally.body.moveUp(500);  
@@ -343,7 +633,7 @@ var play_state = {
     },
     enemyCollidesFloor: function(enemy) {
         game.time.events.add(1000, function() {
-            console.log("Setting the floor var to true");
+            // console.log("Setting the floor var to true");
             enemy.isOnFloor = true;
         }, this);
     },
@@ -367,6 +657,22 @@ var play_state = {
             }
 
         });
+    },
+    startGame: function() {
+        // game.camera.follow(sally);
+        // invisibleWall.kill();
+        stopSally = false;
+        game.add.tween(title).to( { alpha: 0 }, 8000, Phaser.Easing.Linear.None, true, 0);
+        // game.camera.follow(sally);
+        // var cameraTween = game.add.tween(game.camera).to( {x: (sally.x )  - 200, y: sally.y  }, 750, Phaser.Easing.Quadratic.InOut, true);
+        // cameraTween.onComplete.add(function() {
+        //     // game.camera.follow(sally);
+        //     cameraStart = true;
+        // });
+    },
+    render: function() {
+        // game.debug.cameraInfo(game.camera, 32, 32);
+        // game.debug.spriteCoords(sally, 32, 500);
     }
 };
 window.moveEnemies = play_state.moveEnemies;
